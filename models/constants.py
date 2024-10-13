@@ -1,0 +1,2 @@
+DEEPSEEK_KEY="sk-c883019d2db04d458026a16318a3491f"
+DEEPSEEK_URL="https://api.deepseek.com"

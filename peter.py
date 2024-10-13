@@ -2,6 +2,7 @@ import sys
 from ai_master import Master
 from task_manager import TaskManager
 from tasks import *
+from teacher_tasks import TeacherTask
 
 class Assistant:
     def __init__(self, name, master):
@@ -14,6 +15,8 @@ class Assistant:
             t = ReminderTaskRepeat(args["name"], args["period"], args["content"])
         elif task_type == 2:
             t = JokeTask(args["name"], args["joke_type"])
+        elif task_type == 3:
+            t = TeacherTask(args["name"])
         self.task_manager.add_task(t)
         return 
 
@@ -61,6 +64,7 @@ if __name__ == "__main__":
     perter1.greet() #
     perter1.add_task(1, name="test_task1", period=2, content = "drink water")
     perter1.add_task(2, name="daily_joke", joke_type="sex")
+    perter1.add_task(3, name="study_1")
     perter1.serve()
 
 

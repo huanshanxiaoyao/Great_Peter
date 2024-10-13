@@ -1,4 +1,5 @@
 import time
+from models.model_factory import ModelFactory
 
 class Task():
     """"""
@@ -8,13 +9,23 @@ class Task():
     def check(self):
         return
 
-class JokeTask():
+class JokeTask(Task):
     def __init__(self, name, joke_type):
-        super().__init__()
+        super().__init__(name)
         self.type = joke_type
+        self.joke_model = ModelFactory.get_model_class("DeepSeek")
+        self.trigger_timings = []
 
     def check(self):
-        print("This is a joke (type:%s)"%self.type)
+        #TODO
+        if len(self.trigger_timings) > 2 and self.trigger_timings[-1] +180 > time.time():
+            print("skip once")
+            return
+
+
+        req_content = "Tell me a funny story on %s"%self.type
+        message = self.joke_model.request(req_content)
+        print("This is a joke (type:%s), %s"%(self.type, message))
         return
 
 

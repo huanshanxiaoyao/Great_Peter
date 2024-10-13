@@ -1,3 +1,4 @@
+import time
 
 class TaskManager:
     def __init__(self):
@@ -9,3 +10,4 @@ class TaskManager:
     def check_and_run(self):
         for t in self.taskList:
             t.check()
+        time.sleep(3) #TODO
