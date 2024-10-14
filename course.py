@@ -1,11 +1,19 @@
 import json
 from log_config import main_logger
 
+class HomeWork():
+    def __init__(self, rel_chapter_title):
+        self.title = rel_chapter_title
+        self.open_questions = []
+        self.closed_questions = []
+
 class Chapter():
     def __init__(self, title, content, ref):
         self.title = title
         self.content = content
         self.ref = ref
+        self.status = 0
+        self.eval_score = []
 
 class InterestCourse():
     """
@@ -19,7 +27,6 @@ class InterestCourse():
     def __init__(self, name):
         self.name = name
         self.chapters = []
-        self.homeworks = []
 
 
     def set_plan(self, outline_content):
@@ -29,6 +36,7 @@ class InterestCourse():
         """
         
         error_str = None
+        data = []
         try:
             data = json.loads(outline_content)
         except json.JSONDecodeError as e:
@@ -41,8 +49,12 @@ class InterestCourse():
             error_str = "Other Error:%s"%e
             main_logger.error(error_str)
 
+        if error_str:
+            return False, error_str
+
         if "chapters" not in data:
             main_logger.error("no weeks key in data")
+            return False, "key errro in data"
         chapters = data["chapters"]
         self.class_hour = len(chapters)
         for chap in chapters:
@@ -51,12 +63,31 @@ class InterestCourse():
             ref = chap['ref']
             self.chapters.append(Chapter(title, content, ref))
 
-        if not error_str:
-            main_logger.info("Success load data and build plan")
-            return True, error_str
-        else:
-            return False, error_str
+        main_logger.info("Success load data and build plan")
+        return True, error_str
 
+    
+    def pick_chapter(self, idx=-1):
+        """
+        if idx gived return idx th chapter, otherwise return next un-finished chapter
+        """
+        if idx > -1 and idx < len(self.chapters):
+            return idx, self.chapters[idx]
+        for idx, chap in enumerate(self.chapters):
+            if chap.status == 0:
+                return idx, chap
+
+
+    def study_hour(self):
+        """
+        完成一个课时的学习
+        """
+
+        chap_idx, slected_chapter = self.pick_chapter()
+
+        #step1, 构造 prompt, 查询AI 得到提纲
+        prompt = get_chapter_outline(self.title, slected_chapter.title, slected_chapter.content, slected_chapter.ref)
+        
 
     def update_progress(self):
         return

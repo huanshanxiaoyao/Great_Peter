@@ -1,6 +1,10 @@
 import time
 from models.model_factory import ModelFactory
 
+REMINDERTASK = 1
+JOKETASK = 2
+TEACHERTASK = 3
+
 class Task():
     """"""
     def __init__(self, name):

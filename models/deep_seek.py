@@ -1,4 +1,3 @@
-# Please install OpenAI SDK first: `pip3 install openai`
 
 from openai import OpenAI
 from models.base_model import BaseModel
