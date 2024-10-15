@@ -28,29 +28,27 @@ class InterestCourse():
         self.name = name
         self.chapters = []
 
+    def format_chapter_outline(self, outline_content):
+        data, error_str = self.try_load_json(outline_content) 
+        if len(data) == 0:
+            return False, error_str
+
+
+        if "topics" not in data:
+            main_logger.error("no topics key in data")
+            return False, "key errro in data"
+        topics = data["topics"]
+        return
 
     def set_plan(self, outline_content):
         """
         outline_content got from AI
         因为 AI 返回内容格式并不完全可控，因此需要做较多检查
         """
-        
-        error_str = None
-        data = []
-        try:
-            data = json.loads(outline_content)
-        except json.JSONDecodeError as e:
-            error_str = "JSONDecodeError:%s"%e
-            main_logger.error(error_str)
-        except TypeError as e:
-            error_str = "TypeError:%s"%e
-            main_logger.error(error_str)
-        except Exception as e:
-            error_str = "Other Error:%s"%e
-            main_logger.error(error_str)
-
-        if error_str:
+        data, error_str = self.try_load_json(outline_content) 
+        if len(data) == 0:
             return False, error_str
+
 
         if "chapters" not in data:
             main_logger.error("no weeks key in data")
@@ -67,28 +65,22 @@ class InterestCourse():
         return True, error_str
 
     
-    def pick_chapter(self, idx=-1):
-        """
-        if idx gived return idx th chapter, otherwise return next un-finished chapter
-        """
-        if idx > -1 and idx < len(self.chapters):
-            return idx, self.chapters[idx]
-        for idx, chap in enumerate(self.chapters):
-            if chap.status == 0:
-                return idx, chap
+    def try_load_json(self, content):
+        error_str = None
+        data = []
+        try:
+            data = json.loads(content)
+        except json.JSONDecodeError as e:
+            error_str = "JSONDecodeError:%s"%e
+            main_logger.error(error_str)
+        except TypeError as e:
+            error_str = "TypeError:%s"%e
+            main_logger.error(error_str)
+        except Exception as e:
+            error_str = "Other Error:%s"%e
+            main_logger.error(error_str)
 
+        if error_str:
+            return [], error_str
 
-    def study_hour(self):
-        """
-        完成一个课时的学习
-        """
-
-        chap_idx, slected_chapter = self.pick_chapter()
-
-        #step1, 构造 prompt, 查询AI 得到提纲
-        prompt = get_chapter_outline(self.title, slected_chapter.title, slected_chapter.content, slected_chapter.ref)
-        
-
-    def update_progress(self):
-        return
-
+        return data, "Done"
