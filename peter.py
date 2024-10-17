@@ -5,20 +5,25 @@ from tasks import *
 from teacher_tasks import TeacherTask
 from prompt_factory import PromptFactory
 from models.model_factory import ModelFactory
+from id_generator import PersistentIDGenerator
 
 class Assistant:
     def __init__(self, name):
         self.name = name
         self.task_manager = TaskManager()
         self._model = ModelFactory.get_model_class("GPT4")
+        self.user2task = {}
     
     def add_task(self, task_type, **args): 
+        _id = PersistentIDGenerator.generate_id()
         if task_type == REMINDERTASK:
             t = ReminderTaskRepeat(args["name"], args["period"], args["content"])
         elif task_type == JOKETASK:
             t = JokeTask(args["name"], args["joke_type"])
         elif task_type == TEACHERTASK:
-            t = TeacherTask(args["name"])
+            uid = args["uid"]
+            t = TeacherTask(args["title"], _id, uid)
+            self.user2task[uid] = _id
         self.task_manager.add_task(t)
         return 
 
@@ -44,6 +49,8 @@ class Assistant:
             parse_res = self._model.request(req_str)
             if len(parse_res) and parse_res != "No":
                 title_to_confirm = parse_res
+            else:
+                return False, "can't understand study topic"
 
             #self.add_task(TEACHERTASK, title)
         except Exception as e:

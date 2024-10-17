@@ -7,8 +7,10 @@ TEACHERTASK = 3
 
 class Task():
     """"""
-    def __init__(self, name):
+    def __init__(self, name, _id = 0, uid=0):
         self.name = name
+        self.id = _id
+        self.uid = uid
     
     def check(self):
         return

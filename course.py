@@ -15,7 +15,7 @@ class Chapter():
         self.status = 0
         self.eval_score = []
 
-class InterestCourse():
+class Course():
     """
     AI辅导的 兴趣课程，有如下特点
     1, 学习内容由学生主动选择 ，然后与导师确认
@@ -38,7 +38,17 @@ class InterestCourse():
             main_logger.error("no topics key in data")
             return False, "key errro in data"
         topics = data["topics"]
-        return
+        return True, topics
+
+    def check_next_chapter(self):
+        """返回下一个未学习的 chapter 的 idx"""
+        idx = -1
+        for i, chap in enumerate(self.chapters):
+            if chap.status == 0:
+                idx = i
+                break
+        return idx
+            
 
     def set_plan(self, outline_content):
         """
@@ -64,7 +74,14 @@ class InterestCourse():
         main_logger.info("Success load data and build plan")
         return True, error_str
 
-    
+    def show_outlines(self): 
+        show_str = ""
+        for i in range(min(5, len(self.chapters))):
+            show_str += self.chapters[i].title 
+            show_str += self.chapters[i].content
+            show_str += '\n'
+        return show_str
+
     def try_load_json(self, content):
         error_str = None
         data = []
