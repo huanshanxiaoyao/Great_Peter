@@ -74,7 +74,7 @@ def check_message():
             ret_json = {'message':"No tasks"}
     except Exception as e:
         http_code = 401
-        print(str(e))
+        print("flask server 77" + str(e))
         ret_json = {'message':"unexpted error, 76"}
     return jsonify(ret_json), http_code
 

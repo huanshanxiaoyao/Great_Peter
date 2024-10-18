@@ -75,11 +75,11 @@ class Course():
         return True, error_str
 
     def show_outlines(self): 
-        show_str = ""
+        show_info = {}
         for i in range(min(5, len(self.chapters))):
-            show_str += self.chapters[i].title 
-            show_str += self.chapters[i].content
-            show_str += '\n'
+            show_info[i] = [self.chapters[i].title, self.chapters[i].content]
+        show_str = json.dumps(show_info, ensure_ascii=False)
+        #print(show_str)
         return show_str
 
     def try_load_json(self, content):
