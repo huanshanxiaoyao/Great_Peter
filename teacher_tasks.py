@@ -3,6 +3,9 @@ from tasks import Task
 from models.model_factory import ModelFactory
 from course import Course
 from prompt_factory import PromptFactory
+from log_config import logger
+import re
+import random
 
 class TeacherTask(Task):
     """
@@ -21,11 +24,10 @@ class TeacherTask(Task):
         # 当前课程状态
         # 0 为开题, 1 学习中, 2 章节学完，未考核, 3 完成学习和考核
         self.status = 0
-    
+        logger.info("TeacherTask created: title=%s, id=%s, uid=%s" % (self.course_name, _id, uid))
 
     def check(self):
-        print("Check Task:%s"%self.course_name)
-
+        logger.info("Checking task: %s" % self.course_name)
         success = False
         #根据执行情况  产出要添加的触发消息
         task_message = {}
@@ -37,47 +39,48 @@ class TeacherTask(Task):
                 return False, task_message
             self.course = course
             self.status = 1
-
+            logger.info("Task status updated to 1 for: %s" % self.course_name)
             task_message = {"info":"course %s ready, you can start", \
                     "course_title":self.course_name,\
                     "course_id":self.id,\
                     "outline_content":self.course.show_outlines(),\
                     "next_idx": 0}
 
-        elif self.status == 1:
-            success = self.study_hour(self.course)
-            if not success:
-                #TODO logging
-                return False, task_message
-            #
-            idx = self.course.check_next_chapter()
-            if idx > -1:
-                task_message = {"info":"you can start next chapter", \
-                        "course_title": self.course_name,\
-                        "course_id":self.id,\
-                        "next_idx":idx}
-                pass
-            else:
-                self.status = 2
-                task_message = {"info":"Great!,you finish all chapters", \
-                        "course_title": self.course_name,\
-                        "course_id":self.id,\
-                        "next_idx":-1}
+        # elif self.status == 1:
+        #     success = self.study_hour(self.course)
+        #     if not success:
+        #         #TODO logging
+        #         return False, task_message
+        #     #
+        #     idx = self.course.check_next_chapter()
+        #     if idx > -1:
+        #         task_message = {"info":"you can start next chapter", \
+        #                 "course_title": self.course_name,\
+        #                 "course_id":self.id,\
+        #                 "next_idx":idx}
+        #         pass
+        #     else:
+        #         self.status = 2
+        #         task_message = {"info":"Great!,you finish all chapters", \
+        #                 "course_title": self.course_name,\
+        #                 "course_id":self.id,\
+        #                 "next_idx":-1}
         else:
             #TODO 先跳过，后面再实现
             pass
         return success, task_message
         
 
-    def study_hour(self, course):
+    def study_hour(self, chapter_id=-1):
         """
         完成一个课时的学习
         """
+        course = self.course
         if not course:
             #TODO
-            return 
+            return False, "Course not set"
 
-        chap_idx, slected_chapter = self.pick_chapter(course)
+        chap_idx, slected_chapter = self.pick_chapter(course, chapter_id)
 
         #step1, 构造 prompt, 查询AI 得到提纲
         prompt = PromptFactory.get_chapter_outline_prompt(self.course_name, slected_chapter.title, slected_chapter.content, slected_chapter.ref)
@@ -85,15 +88,29 @@ class TeacherTask(Task):
         message = self.teacher_model.request(prompt)
 
         try_count = 1
+        output_content = ""
 
         while try_count < 3:
             #尝试解析
-            ret, erro_info = course.format_chapter_outline(message)
-            new_prompt = "请按要求重新回答:" + prompt
-            message = self.teacher_model.request(new_prompt)
+            message = message[message.find('{'):message.rfind('}')+1]
+            ret, topics = course.format_chapter_outline(message)
+            if not ret:
+                logger.info("parse json failed +1 " + topics)
+                new_prompt = "请按要求重新回答:" + prompt
+                message = self.teacher_model.request(new_prompt)
+            else:
+                for topic in topics:
+                    output_content += '\n' + topic['title'] + '\n'
+                    output_content += topic['content']
+                slected_chapter.status = 1
+                break
+            try_count += 1
 
+        if try_count >= 3:
+            return False, "Failed to get chapter outline"
         #step2, 
-        return 
+        logger.info(f"Returning output content: {output_content}")
+        return True, output_content
         
 
     def update_progress(self):
@@ -115,7 +132,7 @@ class TeacherTask(Task):
         print(outline_prompt)
         message = self.teacher_model.request(outline_prompt)
         print(message)
-        ###TODO
+        ###TODO json tips
         message = message[message.find('{'):message.rfind('}')+1]
         print(message)
         course = Course(course_title)
@@ -137,5 +154,6 @@ class TeacherTask(Task):
         return success, course
 
 if __name__ == "__main__":
-    task1 = TeacherTask("法国历史")
+    task1 = TeacherTask("法国历史", 1,11)
     task1.check()
+    task1.study_hour(0)

@@ -4,6 +4,7 @@ import threading
 class TaskManager:
     def __init__(self):
         self.taskList = []
+        self.id2task = {}
 
         self.lock = threading.Lock()
         self.taskMessages = {}

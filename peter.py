@@ -12,10 +12,10 @@ class Assistant:
         self.name = name
         self.task_manager = TaskManager()
         self._model = ModelFactory.get_model_class("GPT4")
-        self.user2task = {}
+        self.user2taskid = {} #uid to taskid list
     
     def add_task(self, task_type, **args): 
-        _id = PersistentIDGenerator.generate_id()
+        _id = PersistentIDGenerator.generate_id()#course_id and task_id
         if task_type == REMINDERTASK:
             t = ReminderTaskRepeat(args["name"], args["period"], args["content"])
         elif task_type == JOKETASK:
@@ -23,9 +23,12 @@ class Assistant:
         elif task_type == TEACHERTASK:
             uid = args["uid"]
             t = TeacherTask(args["title"], _id, uid)
-            self.user2task[uid] = _id
+            self.task_manager.id2task[_id] = t
+            if uid not in self.user2taskid: 
+                self.user2taskid[uid] = []
+            self.user2taskid[uid].append(_id)
         self.task_manager.add_task(t)
-        return 
+        return _id
 
     def serve(self):
         self.greet()

@@ -1,5 +1,5 @@
 import json
-from log_config import main_logger
+from log_config import logger
 
 class HomeWork():
     def __init__(self, rel_chapter_title):
@@ -31,11 +31,12 @@ class Course():
     def format_chapter_outline(self, outline_content):
         data, error_str = self.try_load_json(outline_content) 
         if len(data) == 0:
+            logger.error("data == 0")
             return False, error_str
 
 
         if "topics" not in data:
-            main_logger.error("no topics key in data")
+            logger.error("no topics key in data")
             return False, "key errro in data"
         topics = data["topics"]
         return True, topics
@@ -61,7 +62,7 @@ class Course():
 
 
         if "chapters" not in data:
-            main_logger.error("no weeks key in data")
+            logger.error("no weeks key in data")
             return False, "key errro in data"
         chapters = data["chapters"]
         self.class_hour = len(chapters)
@@ -71,12 +72,12 @@ class Course():
             ref = chap['ref']
             self.chapters.append(Chapter(title, content, ref))
 
-        main_logger.info("Success load data and build plan")
+        logger.info("Success load data and build plan")
         return True, error_str
 
     def show_outlines(self): 
         show_info = {}
-        for i in range(min(5, len(self.chapters))):
+        for i in range(len(self.chapters)):
             show_info[i] = [self.chapters[i].title, self.chapters[i].content]
         show_str = json.dumps(show_info, ensure_ascii=False)
         #print(show_str)
@@ -89,13 +90,13 @@ class Course():
             data = json.loads(content)
         except json.JSONDecodeError as e:
             error_str = "JSONDecodeError:%s"%e
-            main_logger.error(error_str)
+            logger.error(error_str + "json_str:" + content)
         except TypeError as e:
             error_str = "TypeError:%s"%e
-            main_logger.error(error_str)
+            logger.error(error_str)
         except Exception as e:
             error_str = "Other Error:%s"%e
-            main_logger.error(error_str)
+            logger.error(error_str)
 
         if error_str:
             return [], error_str
