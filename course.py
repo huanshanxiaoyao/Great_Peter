@@ -1,3 +1,4 @@
+import os
 import json
 from log_config import logger
 
@@ -8,12 +9,25 @@ class HomeWork():
         self.closed_questions = []
 
 class Chapter():
-    def __init__(self, title, content, ref):
+    def __init__(self, title, content, ref, status=0, detail_content=""):
         self.title = title
         self.content = content
         self.ref = ref
-        self.status = 0
-        self.eval_score = []
+        self.status = status
+        self.detail_content = detail_content
+
+    def to_dict(self):
+        return {
+            "title": self.title,
+            "content": self.content,
+            "ref": self.ref,
+            "status": self.status,
+            "detail_content": self.detail_content
+        }
+    
+    @classmethod
+    def from_dict(cls, data):
+        return cls(data["title"], data["content"], data["ref"], data["status"], data["detail_content"])
 
 class Course():
     """
@@ -24,9 +38,13 @@ class Course():
     4, 学生根据参考文献做进一步学习，然后完成每课时作业
     5, 导师出考核内容，并自主判卷，如担心准确性，可引入其他导师(Agent)校验
     """
-    def __init__(self, name):
+    def __init__(self, cid, name):
+        self.id = cid
         self.name = name
         self.chapters = []
+        self.storage_file = "pdata/course_storage_%s.json"%cid
+
+        self._load_from_storage()
 
     def format_chapter_outline(self, outline_content):
         data, error_str = self.try_load_json(outline_content) 
@@ -71,6 +89,7 @@ class Course():
             content = chap['content']
             ref = chap['ref']
             self.chapters.append(Chapter(title, content, ref))
+            self._save_to_storage()
 
         logger.info("Success load data and build plan")
         return True, error_str
@@ -102,3 +121,20 @@ class Course():
             return [], error_str
 
         return data, "Done"
+
+    def _save_to_storage(self):
+
+        data = {"chapters":[chap.to_dict() for chap in self.chapters] }
+
+        with open(self.storage_file, "w") as file:
+            json.dump(data, file)
+
+    def _load_from_storage(self):
+        if os.path.exists(self.storage_file):
+            with open(self.storage_file, "r") as file:
+                data = json.load(file)
+                self.chapters = [Chapter.from_dict(chap) for chap in data.get("chapters", [])]
+        else:
+            self.chapters = []
+
+   

@@ -38,8 +38,7 @@ def dialogue():
 
 @app.route('/confirm', methods=['POST'])
 def confirm_task():
-    logger.info("Request Data: %s", request.data)
-    logger.info("Request JSON: %s", request.json)
+    logger.info("Request Data: %s", request.json)
     data = request.json
     if not isinstance(data, dict):
         return jsonify({'error': 'Invalid JSON data'}), 400
@@ -50,11 +49,12 @@ def confirm_task():
         try:
             int_uid = int(data["userID"])
         except:
+            logger.error("userID is not int")
             return jsonify({'error': 'userID is not int'}), 400
         peter.add_task(3, title=data['title'], uid=int_uid) #
         logger.info("Task added successfully")
     else:
-        return jsonify({'error': 'unexpected confirm data'}), 400
+        return jsonify({'error': 'unexpected confirm data'}), 401
     return jsonify({'message': '确认成功'}), 200
 
 @app.route('/check', methods=['POST'])
@@ -74,8 +74,8 @@ def check_message():
             ret_json = {'message':"No tasks"}
     except Exception as e:
         http_code = 401
-        logger.error("flask server 77 %s", str(e))
-        ret_json = {'message':"unexpted error, 76"}
+        logger.error("flask server %s", str(e))
+        ret_json = {'message':"unexpted error"}
     return jsonify(ret_json), http_code
 
 @app.route('/study', methods=['POST'])
@@ -97,11 +97,13 @@ def study():
         logger.error("user not in user2taskid")
         return jsonify({'error': 'user not in task list'}), 400
     task_ids = peter.user2taskid[uid]
-    if course_id not in task_ids:
+    if course_id not in task_ids: ## 目前 taskid 也就是 courseid , Task 和 Course是一对一，有点奇怪
         logger.error("course not in task list")
         return jsonify({'error': 'course not in task list'}), 400
-    #注意 这里course_id 是 task_id
-    ret, info = peter.task_manager.id2task[course_id].study_hour(outlineitem_id)
+
+    task = peter.task_manager.id2task[course_id]
+    ret, info = task.study_hour(outlineitem_id)
+
     if not ret:
         logger.error("ret :%s"%info)
         return jsonify({'error': info}), 400

@@ -6,7 +6,7 @@ class PersistentIDGenerator:
     _lock = threading.Lock()  # 确保文件读写的线程安全
 
     @classmethod
-    def generate_id(cls):
+    def generate_task_id(cls):
         with cls._lock:
             if not os.path.exists(cls._file_path):
                 with open(cls._file_path, "w") as file:
@@ -23,6 +23,6 @@ class PersistentIDGenerator:
 
 
 if __name__ == "__main__":
-    new_id1 = PersistentIDGenerator.generate_id()  # 1000
-    new_id2 = PersistentIDGenerator.generate_id()  # 1001
+    new_id1 = PersistentIDGenerator.generate_task_id()  # 1000
+    new_id2 = PersistentIDGenerator.generate_task_id()  # 1001
     print("%d,%d"%(new_id1, new_id2))

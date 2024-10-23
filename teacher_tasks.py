@@ -6,6 +6,7 @@ from prompt_factory import PromptFactory
 from log_config import logger
 import re
 import random
+from id_generator import PersistentIDGenerator
 
 class TeacherTask(Task):
     """
@@ -19,7 +20,7 @@ class TeacherTask(Task):
         #
         self.course_name = course_name
         self.course = None
-        self.teacher_model = ModelFactory.get_model_class("GPT4")
+        self._model = ModelFactory.get_model_class("GPT4")
 
         # 当前课程状态
         # 0 为开题, 1 学习中, 2 章节学完，未考核, 3 完成学习和考核
@@ -80,15 +81,19 @@ class TeacherTask(Task):
             #TODO
             return False, "Course not set"
 
+        if chapter_id > -1 and chapter_id < len(course.chapters)  and course.chapters[chapter_id].detail_content:
+            logger.info("return from cache")
+            return True, course.chapters[chapter_id].detail_content
+
         chap_idx, slected_chapter = self.pick_chapter(course, chapter_id)
 
         #step1, 构造 prompt, 查询AI 得到提纲
         prompt = PromptFactory.get_chapter_outline_prompt(self.course_name, slected_chapter.title, slected_chapter.content, slected_chapter.ref)
 
-        message = self.teacher_model.request(prompt)
+        message = self._model.request(prompt)
 
         try_count = 1
-        output_content = ""
+        detail_content = ""
 
         while try_count < 3:
             #尝试解析
@@ -97,20 +102,22 @@ class TeacherTask(Task):
             if not ret:
                 logger.info("parse json failed +1 " + topics)
                 new_prompt = "请按要求重新回答:" + prompt
-                message = self.teacher_model.request(new_prompt)
+                message = self._model.request(new_prompt)
             else:
                 for topic in topics:
-                    output_content += '\n' + topic['title'] + '\n'
-                    output_content += topic['content']
+                    detail_content += '\n' + topic['title'] + '\n'
+                    detail_content += topic['content']
                 slected_chapter.status = 1
+                slected_chapter.detail_content = detail_content
+                course._save_to_storage()
                 break
             try_count += 1
 
         if try_count >= 3:
             return False, "Failed to get chapter outline"
         #step2, 
-        logger.info(f"Returning output content: {output_content}")
-        return True, output_content
+        logger.info(f"Returning detail content: {detail_content}")
+        return True, detail_content
         
 
     def update_progress(self):
@@ -130,12 +137,12 @@ class TeacherTask(Task):
     def set_requirement(self, course_title, study_chapters=10):
         outline_prompt = PromptFactory.get_course_outline_prompt(self.course_name, study_chapters)
         print(outline_prompt)
-        message = self.teacher_model.request(outline_prompt)
-        print(message)
+        message = self._model.request(outline_prompt)
+        ##print(message)
         ###TODO json tips
         message = message[message.find('{'):message.rfind('}')+1]
         print(message)
-        course = Course(course_title)
+        course = Course(self.id, course_title)
 
         try_count = 1
         success = False
@@ -146,12 +153,34 @@ class TeacherTask(Task):
                 success = True
                 break
             new_prompt = "请按照要求输出下面问题答复" + outline_prompt
-            message = self.teacher_model.request(new_prompt)
+            message = self._model.request(new_prompt)
             message = message[message.find('{'):message.rfind('}')+1]
             print(message)
             try_count += 1
 
         return success, course
+
+    @classmethod
+    def create_task(cls, title, uid):
+        task_id = PersistentIDGenerator.generate_task_id()
+        return cls(title, task_id, uid)
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "uid": self.uid,
+            "course_name": self.course_name,
+            "name": self.name,
+            "status": self.status
+        }
+
+    @classmethod 
+    def from_dict(cls, data):
+        task = cls(data["course_name"], data["id"], data["uid"])
+        task.name = data["name"]
+        task.status = data["status"]
+        task.course = Course(data["id"], data["course_name"])
+        return task
 
 if __name__ == "__main__":
     task1 = TeacherTask("法国历史", 1,11)
