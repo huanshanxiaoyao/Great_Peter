@@ -102,7 +102,7 @@ class Assistant:
         id2taskinfo = {t.id: t.to_dict() for t in self.task_manager.id2task.values()}
         data = {"user2taskid": self.user2taskid, "id2taskinfo": id2taskinfo}
         with open(self.storage_file, "w") as f:
-            json.dump(data, f)
+            json.dump(data, f, ensure_ascii=False)
 
     def _load_from_storage(self):
         if os.path.exists(self.storage_file):

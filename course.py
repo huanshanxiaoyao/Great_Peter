@@ -127,7 +127,7 @@ class Course():
         data = {"chapters":[chap.to_dict() for chap in self.chapters] }
 
         with open(self.storage_file, "w") as file:
-            json.dump(data, file)
+            json.dump(data, file, ensure_ascii=False)
 
     def _load_from_storage(self):
         if os.path.exists(self.storage_file):
